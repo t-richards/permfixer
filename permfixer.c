@@ -11,8 +11,8 @@
 #include <unistd.h>
 
 // Hardcoded user/group ids
-const uid_t user_owner = 33;
-const gid_t group_owner = 33;
+const uid_t user_owner = 33; // http / www-data
+const gid_t group_owner = 33; // http / www-data
 
 // Hardcoded octal permissions
 const mode_t dir_perm = 02775;
@@ -21,11 +21,14 @@ const mode_t file_perm = 0664;
 static inline void permfixer_fix_file(const char *path)
 {
     // TODO(tom): POSIX ACLs
+
+    // Change ownership of file
     if (chown(path, user_owner, group_owner) == -1) {
         fprintf(stderr, "Error changing ownership of %s: %s\n", path, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
+    // Upgrade permissions of file
     // Attempt to not clobber files with higher permission levels
     struct stat statbuf;
     stat(path, &statbuf);
@@ -38,11 +41,14 @@ static inline void permfixer_fix_file(const char *path)
 static inline void permfixer_fix_dir(const char *path)
 {
     // TODO(tom): POSIX ACLs
+
+    // Change owner of directory
     if (chown(path, user_owner, group_owner) == -1) {
         fprintf(stderr, "Error changing ownership of %s: %s\n", path, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
+    // Change permissions of directory
     if (chmod(path, dir_perm) == -1) {
         fprintf(stderr, "Error changing permissions of %s: %s\n", path, strerror(errno));
         exit(EXIT_FAILURE);
