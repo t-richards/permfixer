@@ -18,6 +18,7 @@ const gid_t group_owner = 33; // http / www-data
 const mode_t dir_perm = 02775;
 const mode_t file_perm = 0664;
 
+// Fixes permissions on a single file
 static inline void permfixer_fix_file(const char *path)
 {
     // TODO(tom): POSIX ACLs
@@ -38,6 +39,7 @@ static inline void permfixer_fix_file(const char *path)
     }
 }
 
+// Fixes permissions on a single directory
 static inline void permfixer_fix_dir(const char *path)
 {
     // TODO(tom): POSIX ACLs
@@ -55,6 +57,7 @@ static inline void permfixer_fix_dir(const char *path)
     }
 }
 
+// Callback function for nftw()
 static int permfixer_process(const char *fpath, const struct stat *sb, int tflag, struct FTW *ftwbuf)
 {
     switch (tflag) {
@@ -89,7 +92,7 @@ int main(int argc, char *argv[])
 
     permfixer_fix_dir(path);
     if (nftw(path, permfixer_process, 20, flags) == -1) {
-        perror("NFTW");
+        fprintf(stderr, "Failed to walk file tree.\n");
         exit(EXIT_FAILURE);
     }
 
