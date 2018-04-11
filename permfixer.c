@@ -11,8 +11,8 @@
 #include <unistd.h>
 
 // Hardcoded user/group ids
-const uid_t user_owner = 1000;
-const gid_t group_owner = 100;
+const uid_t user_owner = 33;
+const gid_t group_owner = 33;
 
 // Hardcoded octal permissions
 const mode_t dir_perm = 02775;
@@ -40,15 +40,10 @@ static int permfixer_process(const char *fpath, const struct stat *sb, int tflag
 {
     switch (tflag) {
     case FTW_F:
-        printf("(file) %s\n", fpath);
         permfixer_fix_file(fpath);
         break;
     case FTW_D:
-        printf("(dir)  %s\n", fpath);
         permfixer_fix_dir(fpath);
-        break;
-    default:
-        printf("(unknown) %d %s\n", tflag, fpath);
         break;
     }
 
