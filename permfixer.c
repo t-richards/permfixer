@@ -18,12 +18,14 @@ const mode_t dir_perm = S_IRWXU | S_IRWXG | S_ISGID | S_IROTH | S_IXOTH;
 
 static inline void permfixer_fix_file(const char *path)
 {
+    // TODO(tom): POSIX ACLs
     chown(path, user_owner, group_owner);
     chmod(path, file_perm);
 }
 
 static inline void permfixer_fix_dir(const char *path)
 {
+    // TODO(tom): POSIX ACLs
     chown(path, user_owner, group_owner);
     chmod(path, dir_perm);
 }
