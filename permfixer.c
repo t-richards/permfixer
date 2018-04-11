@@ -22,8 +22,11 @@ static inline void permfixer_fix_file(const char *path)
 {
     // TODO(tom): POSIX ACLs
     chown(path, user_owner, group_owner);
-    // TODO(tom): stat before chmod
-    chmod(path, file_perm);
+
+    // Attempt to not clobber files with higher permission levels
+    struct stat statbuf;
+    stat(path, &statbuf);
+    chmod(path, statbuf.st_mode | file_perm);
 }
 
 static inline void permfixer_fix_dir(const char *path)
