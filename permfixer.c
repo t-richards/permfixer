@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     realpath(argv[1], path);
     printf("Fixing %s\n", path);
 
-    chmod(path, dir_perm);
+    permfixer_fix_dir(path);
     if (nftw(path, permfixer_process, 20, flags) == -1) {
         perror("NFTW");
         exit(EXIT_FAILURE);
