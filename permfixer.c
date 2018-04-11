@@ -32,12 +32,11 @@ static int permfixer_process(const char *fpath, const struct stat *sb, int tflag
 {
     switch (tflag) {
     case FTW_F:
-        printf("(file)      %s\n", fpath);
+        printf("(file) %s\n", fpath);
         permfixer_fix_file(fpath);
         break;
-    case FTW_DP:
     case FTW_D:
-        printf("(directory) %s\n", fpath);
+        printf("(dir)  %s\n", fpath);
         permfixer_fix_dir(fpath);
         break;
     default:
@@ -50,8 +49,16 @@ static int permfixer_process(const char *fpath, const struct stat *sb, int tflag
 
 int main(int argc, char *argv[])
 {
-    const char *path = "/home/tom/TMP/testdir";
+    char *path = calloc(1, PATH_MAX);
     int flags = FTW_PHYS | FTW_MOUNT;
+
+    if (argc <= 1) {
+        printf("Usage: %s <directory path>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    realpath(argv[1], path);
+    printf("Fixing %s\n", path);
 
     chmod(path, dir_perm);
     if (nftw(path, permfixer_process, 20, flags) == -1) {
