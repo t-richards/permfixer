@@ -6,6 +6,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install dependencies
+          command: sudo apt-get install libacl1-dev
+      - run:
           name: Compile application
           command: make dist
       - store_artifacts:
