@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/buildpack-deps:stable
+    steps:
+      - checkout
+      - run:
+          name: Compile application
+          command: make dist
+      - store_artifacts:
+          path: permfixer
+          destination: permfixer
