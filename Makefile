@@ -1,6 +1,15 @@
-all:
-	$(CC) -g -O0 -lacl -o permfixer permfixer.c
+CFLAGS := $(CFLAGS) -lacl
 
-dist:
-	$(CC) -O2 -lacl -o permfixer permfixer.c
+.PHONY: all
+all: permfixer
+
+.PHONY: dist
+dist: permfixer
 	strip permfixer
+
+.PHONY: clean
+clean:
+	rm -f permfixer
+
+permfixer:
+	$(CC) $(CFLAGS) -o permfixer permfixer.c
