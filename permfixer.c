@@ -51,7 +51,7 @@ static inline void permfixer_print_acl(const char *path)
 static inline void permfixer_fix_file(const char *path)
 {
     // Show ACL
-    permfixer_print_acl(path);
+    // permfixer_print_acl(path);
 
     // Change ownership of file
     if (chown(path, user_owner, group_owner) == -1) {
@@ -73,7 +73,7 @@ static inline void permfixer_fix_file(const char *path)
 static inline void permfixer_fix_dir(const char *path)
 {
     // Show ACL
-    permfixer_print_acl(path);
+    // permfixer_print_acl(path);
 
     // Change owner of directory
     if (chown(path, user_owner, group_owner) == -1) {

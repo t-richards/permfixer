@@ -11,5 +11,5 @@ dist: permfixer
 clean:
 	rm -f permfixer
 
-permfixer:
+permfixer: permfixer.c
 	$(CC) $(CFLAGS) -o permfixer permfixer.c
