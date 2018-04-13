@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
     }
 
     printf("Fixing %s... ", path);
+    fflush(stdout);
 
     permfixer_fix_dir(path);
     if (nftw(path, permfixer_process, 20, flags) == -1) {

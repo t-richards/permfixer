@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: sudo apt-get install libacl1-dev
+          command: sudo apt-get -y install libacl1-dev
       - run:
           name: Compile application
           command: make dist
