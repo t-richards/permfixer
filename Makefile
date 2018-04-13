@@ -1,6 +1,6 @@
 all:
-	$(CC) -g -O0 -o permfixer permfixer.c
+	$(CC) -g -O0 -lacl -o permfixer permfixer.c
 
 dist:
-	$(CC) -O2 -o permfixer permfixer.c
+	$(CC) -O2 -lacl -o permfixer permfixer.c
 	strip permfixer

@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/acl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -18,10 +20,38 @@ const gid_t group_owner = 33; // http / www-data
 const mode_t dir_perm = 02775;
 const mode_t file_perm = 0664;
 
+static inline void permfixer_print_acl(const char *path)
+{
+    acl_t acl;
+    acl_entry_t entry;
+    acl_permset_t perms;
+    acl_type_t type = ACL_TYPE_ACCESS;
+    char *acl_text;
+
+    acl = acl_get_file(path, type);
+    if (!acl) {
+        fprintf(stderr, "Could not retrieve ACL for %s: %s\n", path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    acl_text = acl_to_text(acl, 0);
+    if (!acl_text) {
+        fprintf(stderr, "Could not convert ACL to text for %s: %s\n", path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    printf("\n%s\n", path);
+    printf("%s", acl_text);
+
+    acl_free(acl);
+    acl_free(acl_text);
+}
+
 // Fixes permissions on a single file
 static inline void permfixer_fix_file(const char *path)
 {
-    // TODO(tom): POSIX ACLs
+    // Show ACL
+    permfixer_print_acl(path);
 
     // Change ownership of file
     if (chown(path, user_owner, group_owner) == -1) {
@@ -42,7 +72,8 @@ static inline void permfixer_fix_file(const char *path)
 // Fixes permissions on a single directory
 static inline void permfixer_fix_dir(const char *path)
 {
-    // TODO(tom): POSIX ACLs
+    // Show ACL
+    permfixer_print_acl(path);
 
     // Change owner of directory
     if (chown(path, user_owner, group_owner) == -1) {
@@ -88,15 +119,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    printf("Fixing %s... ", path);
-
     permfixer_fix_dir(path);
     if (nftw(path, permfixer_process, 20, flags) == -1) {
         fprintf(stderr, "Failed to walk file tree.\n");
         exit(EXIT_FAILURE);
     }
-
-    puts("done");
 
     exit(EXIT_SUCCESS);
 }
