@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE 500
+#define ACL_FEATURE_FLAG 0
 
 #include <errno.h>
 #include <ftw.h>
@@ -40,8 +41,10 @@ static inline void permfixer_print_acl(const char *path)
         exit(EXIT_FAILURE);
     }
 
-    printf("\n%s\n", path);
-    printf("%s", acl_text);
+    if (ACL_FEATURE_FLAG) {
+        printf("\n%s\n", path);
+        printf("%s", acl_text);
+    }
 
     acl_free(acl);
     acl_free(acl_text);
@@ -51,7 +54,7 @@ static inline void permfixer_print_acl(const char *path)
 static inline void permfixer_fix_file(const char *path)
 {
     // Show ACL
-    // permfixer_print_acl(path);
+    permfixer_print_acl(path);
 
     // Change ownership of file
     if (chown(path, user_owner, group_owner) == -1) {
@@ -73,7 +76,7 @@ static inline void permfixer_fix_file(const char *path)
 static inline void permfixer_fix_dir(const char *path)
 {
     // Show ACL
-    // permfixer_print_acl(path);
+    permfixer_print_acl(path);
 
     // Change owner of directory
     if (chown(path, user_owner, group_owner) == -1) {
