@@ -119,11 +119,15 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    printf("Fixing %s... ", path);
+
     permfixer_fix_dir(path);
     if (nftw(path, permfixer_process, 20, flags) == -1) {
         fprintf(stderr, "Failed to walk file tree.\n");
         exit(EXIT_FAILURE);
     }
+
+    puts("done");
 
     exit(EXIT_SUCCESS);
 }
