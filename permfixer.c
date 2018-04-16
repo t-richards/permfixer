@@ -1,5 +1,5 @@
 #define _XOPEN_SOURCE 500
-#define ACL_FEATURE_FLAG 0
+#define ACL_FEATURE_FLAG 1
 
 #include <errno.h>
 #include <ftw.h>
@@ -13,6 +13,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+// Harcdoded ACL stuff
+const char *file_acl = "group:http:rw-";
+const char *dir_acl = "group:http:rwx";
+
 // Hardcoded user/group ids
 const uid_t user_owner = 33; // http / www-data
 const gid_t group_owner = 33; // http / www-data
@@ -21,7 +25,36 @@ const gid_t group_owner = 33; // http / www-data
 const mode_t dir_perm = 02775;
 const mode_t file_perm = 0664;
 
-static inline void permfixer_print_acl(const char *path)
+// Sets the default ACL entry for a directory
+static inline void permfixer_set_dir_acl(const char *path)
+{
+    acl_t acl;
+    acl_entry_t entry;
+    acl_permset_t perms;
+    acl_type_t type = ACL_TYPE_DEFAULT;
+    char *acl_text;
+
+    acl = acl_get_file(path, type);
+    if (!acl) {
+        fprintf(stderr, "Could not retrieve ACL for %s: %s\n", path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    acl_text = acl_to_text(acl, 0);
+    if (!acl_text) {
+        fprintf(stderr, "Could not convert ACL to text for %s: %s\n", path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    printf("\n%s\n", path);
+    printf("%s", acl_text);
+
+    acl_free(acl);
+    acl_free(acl_text);
+}
+
+// Sets the access ACL entry for a file
+static inline void permfixer_set_file_acl(const char *path)
 {
     acl_t acl;
     acl_entry_t entry;
@@ -41,10 +74,8 @@ static inline void permfixer_print_acl(const char *path)
         exit(EXIT_FAILURE);
     }
 
-    if (ACL_FEATURE_FLAG) {
-        printf("\n%s\n", path);
-        printf("%s", acl_text);
-    }
+    printf("\n%s\n", path);
+    printf("%s", acl_text);
 
     acl_free(acl);
     acl_free(acl_text);
@@ -54,7 +85,7 @@ static inline void permfixer_print_acl(const char *path)
 static inline void permfixer_fix_file(const char *path)
 {
     // Show ACL
-    permfixer_print_acl(path);
+    permfixer_set_file_acl(path);
 
     // Change ownership of file
     if (chown(path, user_owner, group_owner) == -1) {
@@ -76,7 +107,7 @@ static inline void permfixer_fix_file(const char *path)
 static inline void permfixer_fix_dir(const char *path)
 {
     // Show ACL
-    permfixer_print_acl(path);
+    permfixer_set_dir_acl(path);
 
     // Change owner of directory
     if (chown(path, user_owner, group_owner) == -1) {
@@ -122,16 +153,20 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    if (strcmp(path, "/") == 0) {
+        fprintf(stderr, "Refusing to run on /");
+        exit(EXIT_FAILURE);
+    }
+
     printf("Fixing %s... ", path);
     fflush(stdout);
 
-    permfixer_fix_dir(path);
     if (nftw(path, permfixer_process, 20, flags) == -1) {
         fprintf(stderr, "Failed to walk file tree.\n");
         exit(EXIT_FAILURE);
     }
 
-    puts("done");
+    puts("done.");
 
     exit(EXIT_SUCCESS);
 }
