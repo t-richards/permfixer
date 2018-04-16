@@ -12,4 +12,4 @@ clean:
 	rm -f permfixer
 
 permfixer: permfixer.c
-	$(CC) $(CFLAGS) -o permfixer permfixer.c
+	$(CC) -o permfixer permfixer.c $(CFLAGS)

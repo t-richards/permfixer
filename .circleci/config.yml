@@ -2,12 +2,9 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/buildpack-deps:stable
+      - image: trichards/permfixer
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: sudo apt-get -y install libacl1-dev
       - run:
           name: Compile application
           command: make dist
