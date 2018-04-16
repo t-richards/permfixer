@@ -1,5 +1,5 @@
 #define _XOPEN_SOURCE 500
-#define ACL_FEATURE_FLAG 1
+#define ACL_FEATURE_FLAG 0
 
 #include <errno.h>
 #include <ftw.h>
@@ -84,8 +84,10 @@ static inline void permfixer_set_file_acl(const char *path)
 // Fixes permissions on a single file
 static inline void permfixer_fix_file(const char *path)
 {
-    // Show ACL
-    permfixer_set_file_acl(path);
+    if (ACL_FEATURE_FLAG) {
+        // Show ACL
+        permfixer_set_file_acl(path);
+    }
 
     // Change ownership of file
     if (chown(path, user_owner, group_owner) == -1) {
@@ -106,8 +108,10 @@ static inline void permfixer_fix_file(const char *path)
 // Fixes permissions on a single directory
 static inline void permfixer_fix_dir(const char *path)
 {
-    // Show ACL
-    permfixer_set_dir_acl(path);
+    if (ACL_FEATURE_FLAG) {
+        // Show ACL
+        permfixer_set_dir_acl(path);
+    }
 
     // Change owner of directory
     if (chown(path, user_owner, group_owner) == -1) {
