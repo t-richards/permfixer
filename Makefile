@@ -1,4 +1,6 @@
-CFLAGS := $(CFLAGS) -lacl
+ifeq ($(shell uname),Linux)
+	CFLAGS := $(CFLAGS) -lacl
+endif
 
 .PHONY: all
 all: permfixer
