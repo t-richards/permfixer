@@ -1,176 +1,153 @@
 #define _XOPEN_SOURCE 500
-#define ACL_FEATURE_FLAG 0
 
 #include <errno.h>
 #include <ftw.h>
+#include <getopt.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/acl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-// Harcdoded ACL stuff
-const char *file_acl = "group:http:rw-";
-const char *dir_acl = "group:http:rwx";
+// User / group ids
+uid_t user_owner;
+gid_t group_owner;
 
-// Hardcoded user/group ids
-const uid_t user_owner = 33; // http / www-data
-const gid_t group_owner = 33; // http / www-data
+// Directory / file permissions
+mode_t dir_perm = 0755;
+mode_t file_perm = 0644;
 
-// Hardcoded octal permissions
-const mode_t dir_perm = 02775;
-const mode_t file_perm = 0664;
-
-// Sets the default ACL entry for a directory
-static inline void permfixer_set_dir_acl(const char *path)
-{
-    acl_t acl;
-    acl_entry_t entry;
-    acl_permset_t perms;
-    acl_type_t type = ACL_TYPE_DEFAULT;
-    char *acl_text;
-
-    acl = acl_get_file(path, type);
-    if (!acl) {
-        fprintf(stderr, "Could not retrieve ACL for %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    acl_text = acl_to_text(acl, 0);
-    if (!acl_text) {
-        fprintf(stderr, "Could not convert ACL to text for %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    printf("\n%s\n", path);
-    printf("%s", acl_text);
-
-    acl_free(acl);
-    acl_free(acl_text);
-}
-
-// Sets the access ACL entry for a file
-static inline void permfixer_set_file_acl(const char *path)
-{
-    acl_t acl;
-    acl_entry_t entry;
-    acl_permset_t perms;
-    acl_type_t type = ACL_TYPE_ACCESS;
-    char *acl_text;
-
-    acl = acl_get_file(path, type);
-    if (!acl) {
-        fprintf(stderr, "Could not retrieve ACL for %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    acl_text = acl_to_text(acl, 0);
-    if (!acl_text) {
-        fprintf(stderr, "Could not convert ACL to text for %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    printf("\n%s\n", path);
-    printf("%s", acl_text);
-
-    acl_free(acl);
-    acl_free(acl_text);
-}
+static struct option longopts[] = {{"dperm", required_argument, NULL, 'd'},
+                                   {"fperm", required_argument, NULL, 'f'},
+                                   {"gid", required_argument, NULL, 'g'},
+                                   {"help", no_argument, NULL, 'h'},
+                                   {"uid", required_argument, NULL, 'u'},
+                                   {NULL, 0, NULL, 0}};
 
 // Fixes permissions on a single file
-static inline void permfixer_fix_file(const char *path)
-{
-    if (ACL_FEATURE_FLAG) {
-        // Show ACL
-        permfixer_set_file_acl(path);
-    }
+static inline void permfixer_fix_file(const char *path) {
+  // Change ownership of file
+  if (chown(path, user_owner, group_owner) == -1) {
+    fprintf(stderr, "Error changing ownership of %s: %s\n", path,
+            strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 
-    // Change ownership of file
-    if (chown(path, user_owner, group_owner) == -1) {
-        fprintf(stderr, "Error changing ownership of %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // Upgrade permissions of file
-    // Attempt to not clobber files with higher permission levels
-    struct stat statbuf;
-    stat(path, &statbuf);
-    if (chmod(path, statbuf.st_mode | file_perm) == -1) {
-        fprintf(stderr, "Error changing permissions of %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+  // Upgrade permissions of file
+  // Attempt to not clobber files with higher permission levels
+  struct stat statbuf;
+  stat(path, &statbuf);
+  if (chmod(path, statbuf.st_mode | file_perm) == -1) {
+    fprintf(stderr, "Error changing permissions of %s: %s\n", path,
+            strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 }
 
 // Fixes permissions on a single directory
-static inline void permfixer_fix_dir(const char *path)
-{
-    if (ACL_FEATURE_FLAG) {
-        // Show ACL
-        permfixer_set_dir_acl(path);
-    }
+static inline void permfixer_fix_dir(const char *path) {
+  // Change owner of directory
+  if (chown(path, user_owner, group_owner) == -1) {
+    fprintf(stderr, "Error changing ownership of %s: %s\n", path,
+            strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 
-    // Change owner of directory
-    if (chown(path, user_owner, group_owner) == -1) {
-        fprintf(stderr, "Error changing ownership of %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // Change permissions of directory
-    if (chmod(path, dir_perm) == -1) {
-        fprintf(stderr, "Error changing permissions of %s: %s\n", path, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+  // Change permissions of directory
+  if (chmod(path, dir_perm) == -1) {
+    fprintf(stderr, "Error changing permissions of %s: %s\n", path,
+            strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 }
 
 // Callback function for nftw()
-static int permfixer_process(const char *fpath, const struct stat *sb, int tflag, struct FTW *ftwbuf)
-{
-    switch (tflag) {
-    case FTW_F:
-        permfixer_fix_file(fpath);
-        break;
-    case FTW_D:
-        permfixer_fix_dir(fpath);
-        break;
-    }
+static int permfixer_process(const char *fpath, const struct stat *sb,
+                             int tflag, struct FTW *ftwbuf) {
+  switch (tflag) {
+  case FTW_F:
+    permfixer_fix_file(fpath);
+    break;
+  case FTW_D:
+    permfixer_fix_dir(fpath);
+    break;
+  }
 
-    return 0;
+  return 0;
 }
 
-int main(int argc, char *argv[])
-{
-    char *path = NULL;
-    int flags = FTW_PHYS | FTW_MOUNT;
+void usage(const char *const myname) {
+  printf("usage: %s [opts] <directory path>\n", myname);
+  printf("options:\n");
+  printf("  -h, --help           Show this help message\n");
+  printf("  -d, --dperm <perm>   Specify directory permissions\n");
+  printf("                       Default: %04o\n", dir_perm);
+  printf("  -f, --fperm <perm>   Specify file permissions\n");
+  printf("                       Default: %04o\n", file_perm);
+  printf("  -g, --group <group>  Specify an alternate group\n");
+  printf("                       Default: %d\n", group_owner);
+  printf("  -o, --owner <owner>  Specify an alternate owner\n");
+  printf("                       Default: %d\n", user_owner);
+}
 
-    if (argc <= 1) {
-        printf("Usage: %s <directory path>\n", argv[0]);
-        exit(EXIT_FAILURE);
+int main(int argc, char *argv[]) {
+  // Application data
+  char *path = NULL;
+  int flags = FTW_PHYS | FTW_MOUNT;
+  user_owner = geteuid();
+  group_owner = getegid();
+
+  // getopt junk
+  int ch;
+  char *p;
+
+  while ((ch = getopt_long(argc, argv, "dfghu:", longopts, NULL)) != -1) {
+    switch (ch) {
+    case 'd':
+      printf("dperm: %s\n", optarg);
+      break;
+    case 'f':
+      printf("fperm: %s\n", optarg);
+      break;
+    case 'g':
+      printf("gid: %s\n", optarg);
+      break;
+    case 'h':
+      usage(argv[0]);
+      exit(EXIT_SUCCESS);
+    case 'u':
+      printf("uid: %s\n", optarg);
+      break;
     }
+  }
 
-    path = realpath(argv[1], NULL);
-    if (path == NULL) {
-        fprintf(stderr, "Failed to resolve path %s: %s\n", argv[1], strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+  exit(EXIT_SUCCESS);
 
-    if (strcmp(path, "/") == 0) {
-        fprintf(stderr, "Refusing to run on /");
-        exit(EXIT_FAILURE);
-    }
+  path = realpath(argv[1], NULL);
+  if (path == NULL) {
+    fprintf(stderr, "Failed to resolve path %s: %s\n", argv[1],
+            strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 
-    printf("Fixing %s... ", path);
-    fflush(stdout);
+  if (strcmp(path, "/") == 0) {
+    fprintf(stderr, "Refusing to run on /");
+    exit(EXIT_FAILURE);
+  }
 
-    if (nftw(path, permfixer_process, 20, flags) == -1) {
-        fprintf(stderr, "Failed to walk file tree.\n");
-        exit(EXIT_FAILURE);
-    }
+  printf("Fixing %s... ", path);
+  fflush(stdout);
 
-    puts("done.");
+  if (nftw(path, permfixer_process, 20, flags) == -1) {
+    fprintf(stderr, "Failed to walk file tree.\n");
+    exit(EXIT_FAILURE);
+  }
 
-    exit(EXIT_SUCCESS);
+  puts("done.");
+
+  exit(EXIT_SUCCESS);
 }
