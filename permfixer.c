@@ -3,7 +3,9 @@
 #include <errno.h>
 #include <ftw.h>
 #include <getopt.h>
+#include <grp.h>
 #include <limits.h>
+#include <pwd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,11 +23,14 @@ gid_t group_owner;
 mode_t dir_perm = 0755;
 mode_t file_perm = 0644;
 
+// Other globals
+char *myname = NULL;
+
 static struct option longopts[] = {{"dperm", required_argument, NULL, 'd'},
                                    {"fperm", required_argument, NULL, 'f'},
-                                   {"gid", required_argument, NULL, 'g'},
+                                   {"group", required_argument, NULL, 'g'},
                                    {"help", no_argument, NULL, 'h'},
-                                   {"uid", required_argument, NULL, 'u'},
+                                   {"user", required_argument, NULL, 'u'},
                                    {NULL, 0, NULL, 0}};
 
 // Fixes permissions on a single file
@@ -80,21 +85,74 @@ static int permfixer_process(const char *fpath, const struct stat *sb,
   return 0;
 }
 
-void usage(const char *const myname) {
+static uid_t id(const char *name, const char *type) {
+  uid_t val;
+  char *ep;
+
+  /*
+   * XXX
+   * We know that uid_t's and gid_t's are unsigned longs.
+   */
+  errno = 0;
+  val = strtoul(name, &ep, 10);
+  if (errno || *ep != '\0') {
+    fprintf(stderr, "%s: illegal %s name\n", name, type);
+    exit(EXIT_FAILURE);
+  }
+
+  return val;
+}
+
+static void permfixer_parse_uid(const char *s) {
+  struct passwd *pw;
+
+  if (s == NULL || *s == '\0') {
+    return;
+  }
+
+  pw = getpwnam(s);
+  if (pw != NULL) {
+    user_owner = pw->pw_uid;
+    return;
+  }
+
+  user_owner = id(s, "user");
+}
+
+static void permfixer_parse_gid(const char *s) {
+  struct group *gr;
+
+  if (s == NULL || *s == '\0') {
+    return;
+  }
+
+  gr = getgrnam(s);
+  if (gr != NULL) {
+    group_owner = gr->gr_gid;
+    return;
+  }
+
+  group_owner = id(s, "group");
+}
+
+static void usage(void) {
   printf("usage: %s [opts] <directory path>\n", myname);
   printf("options:\n");
   printf("  -h, --help           Show this help message\n");
   printf("  -d, --dperm <perm>   Specify directory permissions\n");
-  printf("                       Default: %04o\n", dir_perm);
+  printf("                       Current value: %04o\n", dir_perm);
   printf("  -f, --fperm <perm>   Specify file permissions\n");
-  printf("                       Default: %04o\n", file_perm);
-  printf("  -g, --group <group>  Specify an alternate group\n");
-  printf("                       Default: %d\n", group_owner);
-  printf("  -o, --owner <owner>  Specify an alternate owner\n");
-  printf("                       Default: %d\n", user_owner);
+  printf("                       Current value: %04o\n", file_perm);
+  printf("  -g, --group <group>  Specify an alternate group owner\n");
+  printf("                       Current value: %d\n", group_owner);
+  printf("  -u, --user <user>    Specify an alternate user owner\n");
+  printf("                       Current value: %d\n", user_owner);
 }
 
 int main(int argc, char *argv[]) {
+  // init
+  myname = argv[0];
+
   // Application data
   char *path = NULL;
   int flags = FTW_PHYS | FTW_MOUNT;
@@ -114,20 +172,29 @@ int main(int argc, char *argv[]) {
       printf("fperm: %s\n", optarg);
       break;
     case 'g':
-      printf("gid: %s\n", optarg);
+      permfixer_parse_gid(optarg);
+      printf("group id: %d\n", group_owner);
       break;
     case 'h':
-      usage(argv[0]);
+      usage();
       exit(EXIT_SUCCESS);
     case 'u':
-      printf("uid: %s\n", optarg);
+      permfixer_parse_uid(optarg);
+      printf("user id: %d\n", user_owner);
       break;
+    case '?':
+    default:
+      usage();
+      exit(EXIT_FAILURE);
     }
   }
 
-  exit(EXIT_SUCCESS);
+  if (optind >= argc) {
+    fprintf(stderr, "error: no directory path specified (use -h for help)\n");
+    exit(EXIT_FAILURE);
+  }
 
-  path = realpath(argv[1], NULL);
+  path = realpath(argv[optind], NULL);
   if (path == NULL) {
     fprintf(stderr, "Failed to resolve path %s: %s\n", argv[1],
             strerror(errno));
@@ -141,6 +208,8 @@ int main(int argc, char *argv[]) {
 
   printf("Fixing %s... ", path);
   fflush(stdout);
+
+  exit(EXIT_SUCCESS);
 
   if (nftw(path, permfixer_process, 20, flags) == -1) {
     fprintf(stderr, "Failed to walk file tree.\n");
