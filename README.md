@@ -35,10 +35,10 @@ options:
 
 ## Examples
 
-1. Double-check permission and owner values before changing anything
+1. Double-check specified permission and owner values before changing anything
 
 ```
-$ ./permfixer --fperm 0664 --dperm 2775 --user www-data --group www-data --help
+$ permfixer --fperm 0664 --dperm 2775 --user www-data --group www-data --help
 ```
 
 2. Fix permissions on a janky web root
