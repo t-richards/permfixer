@@ -85,6 +85,20 @@ static int permfixer_process(const char *fpath, const struct stat *sb,
   return 0;
 }
 
+static mode_t permfixer_parse_perms(const char *perm, const char *type) {
+  mode_t val;
+  char *ep;
+
+  errno = 0;
+  val = strtoul(perm, &ep, 8);
+  if (errno || *ep != '\0') {
+    fprintf(stderr, "%s: illegal %s permissions\n", perm, type);
+    exit(EXIT_FAILURE);
+  }
+
+  return val;
+}
+
 static uid_t id(const char *name, const char *type) {
   uid_t val;
   char *ep;
@@ -103,36 +117,26 @@ static uid_t id(const char *name, const char *type) {
   return val;
 }
 
-static void permfixer_parse_uid(const char *s) {
+static uid_t permfixer_parse_uid(const char *s) {
   struct passwd *pw;
-
-  if (s == NULL || *s == '\0') {
-    return;
-  }
 
   pw = getpwnam(s);
   if (pw != NULL) {
-    user_owner = pw->pw_uid;
-    return;
+    return pw->pw_uid;
   }
 
-  user_owner = id(s, "user");
+  return id(s, "user");
 }
 
-static void permfixer_parse_gid(const char *s) {
+static gid_t permfixer_parse_gid(const char *s) {
   struct group *gr;
-
-  if (s == NULL || *s == '\0') {
-    return;
-  }
 
   gr = getgrnam(s);
   if (gr != NULL) {
-    group_owner = gr->gr_gid;
-    return;
+    return gr->gr_gid;
   }
 
-  group_owner = id(s, "group");
+  return id(s, "group");
 }
 
 static void usage(void) {
@@ -166,20 +170,22 @@ int main(int argc, char *argv[]) {
   while ((ch = getopt_long(argc, argv, "dfghu:", longopts, NULL)) != -1) {
     switch (ch) {
     case 'd':
-      printf("dperm: %s\n", optarg);
+      dir_perm = permfixer_parse_perms(optarg, "directory");
+      printf("dperm: %04o\n", dir_perm);
       break;
     case 'f':
-      printf("fperm: %s\n", optarg);
+      file_perm = permfixer_parse_perms(optarg, "file");
+      printf("fperm: %04o\n", file_perm);
       break;
     case 'g':
-      permfixer_parse_gid(optarg);
+      group_owner = permfixer_parse_gid(optarg);
       printf("group id: %d\n", group_owner);
       break;
     case 'h':
       usage();
       exit(EXIT_SUCCESS);
     case 'u':
-      permfixer_parse_uid(optarg);
+      user_owner = permfixer_parse_uid(optarg);
       printf("user id: %d\n", user_owner);
       break;
     case '?':
@@ -208,8 +214,6 @@ int main(int argc, char *argv[]) {
 
   printf("Fixing %s... ", path);
   fflush(stdout);
-
-  exit(EXIT_SUCCESS);
 
   if (nftw(path, permfixer_process, 20, flags) == -1) {
     fprintf(stderr, "Failed to walk file tree.\n");
