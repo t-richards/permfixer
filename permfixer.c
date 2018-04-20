@@ -171,22 +171,18 @@ int main(int argc, char *argv[]) {
     switch (ch) {
     case 'd':
       dir_perm = permfixer_parse_perms(optarg, "directory");
-      printf("dperm: %04o\n", dir_perm);
       break;
     case 'f':
       file_perm = permfixer_parse_perms(optarg, "file");
-      printf("fperm: %04o\n", file_perm);
       break;
     case 'g':
       group_owner = permfixer_parse_gid(optarg);
-      printf("group id: %d\n", group_owner);
       break;
     case 'h':
       usage();
       exit(EXIT_SUCCESS);
     case 'u':
       user_owner = permfixer_parse_uid(optarg);
-      printf("user id: %d\n", user_owner);
       break;
     case '?':
     default:

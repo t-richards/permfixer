@@ -35,8 +35,14 @@ options:
 
 ## Examples
 
-1. Fix permissions on a janky web root
+1. Double-check permission and owner values before changing anything
 
 ```
-# permfixer --dperm 2775 --fperm 0664 --owner www-data --group www-data /var/www/site
+$ ./permfixer --fperm 0664 --dperm 2775 --user www-data --group www-data --help
+```
+
+2. Fix permissions on a janky web root
+
+```
+$ sudo permfixer --fperm 0664 --dperm 2775 --user www-data --group www-data /var/www/site
 ```
