@@ -120,6 +120,11 @@ static uid_t id(const char *name, const char *type) {
 static uid_t permfixer_parse_uid(const char *s) {
   struct passwd *pw;
 
+  if (s == NULL || *s == '\0') {
+    fprintf(stderr, "Empty user provided\n.");
+    exit(EXIT_FAILURE);
+  }
+
   pw = getpwnam(s);
   if (pw != NULL) {
     return pw->pw_uid;
@@ -130,6 +135,11 @@ static uid_t permfixer_parse_uid(const char *s) {
 
 static gid_t permfixer_parse_gid(const char *s) {
   struct group *gr;
+
+  if (s == NULL || *s == '\0') {
+    fprintf(stderr, "Empty group provided\n.");
+    exit(EXIT_FAILURE);
+  }
 
   gr = getgrnam(s);
   if (gr != NULL) {
