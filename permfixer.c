@@ -160,8 +160,8 @@ int main(int argc, char *argv[]) {
   // Application data
   char *path = NULL;
   int flags = FTW_PHYS | FTW_MOUNT;
-  user_owner = geteuid();
-  group_owner = getegid();
+  user_owner = getuid();
+  group_owner = getgid();
 
   // getopt junk
   int ch;
