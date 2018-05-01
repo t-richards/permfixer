@@ -121,7 +121,7 @@ static uid_t permfixer_parse_uid(const char *s) {
   struct passwd *pw;
 
   if (s == NULL || *s == '\0') {
-    fprintf(stderr, "Empty user provided\n.");
+    fprintf(stderr, "Empty user provided\n");
     exit(EXIT_FAILURE);
   }
 
@@ -137,7 +137,7 @@ static gid_t permfixer_parse_gid(const char *s) {
   struct group *gr;
 
   if (s == NULL || *s == '\0') {
-    fprintf(stderr, "Empty group provided\n.");
+    fprintf(stderr, "Empty group provided\n");
     exit(EXIT_FAILURE);
   }
 
@@ -147,6 +147,24 @@ static gid_t permfixer_parse_gid(const char *s) {
   }
 
   return id(s, "group");
+}
+
+static uid_t permfixer_get_default_user() {
+  char *sudo_uid = getenv("SUDO_UID");
+  if (sudo_uid == NULL || *sudo_uid == '\0') {
+    return geteuid();
+  }
+
+  return id(sudo_uid, "user");
+}
+
+static gid_t permfixer_get_default_group() {
+  char *sudo_gid = getenv("SUDO_GID");
+  if (sudo_gid == NULL || *sudo_gid == '\0') {
+    return getegid();
+  }
+
+  return id(sudo_gid, "group");
 }
 
 static void usage(void) {
@@ -170,14 +188,14 @@ int main(int argc, char *argv[]) {
   // Application data
   char *path = NULL;
   int flags = FTW_PHYS | FTW_MOUNT;
-  user_owner = getuid();
-  group_owner = getgid();
+  user_owner = permfixer_get_default_user();
+  group_owner = permfixer_get_default_group();
 
   // getopt junk
   int ch;
   char *p;
 
-  while ((ch = getopt_long(argc, argv, "dfghu:", longopts, NULL)) != -1) {
+  while ((ch = getopt_long(argc, argv, "d:f:g:hu:", longopts, NULL)) != -1) {
     switch (ch) {
     case 'd':
       dir_perm = permfixer_parse_perms(optarg, "directory");
