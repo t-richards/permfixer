@@ -26,6 +26,7 @@ mode_t file_perm = 0644;
 // Other globals
 char *myname = NULL;
 
+static char *shortopts = "d:f:g:hu:";
 static struct option longopts[] = {{"dperm", required_argument, NULL, 'd'},
                                    {"fperm", required_argument, NULL, 'f'},
                                    {"group", required_argument, NULL, 'g'},
@@ -152,7 +153,7 @@ static gid_t permfixer_parse_gid(const char *s) {
 static uid_t permfixer_get_default_user() {
   char *sudo_uid = getenv("SUDO_UID");
   if (sudo_uid == NULL || *sudo_uid == '\0') {
-    return geteuid();
+    return getuid();
   }
 
   return id(sudo_uid, "user");
@@ -161,7 +162,7 @@ static uid_t permfixer_get_default_user() {
 static gid_t permfixer_get_default_group() {
   char *sudo_gid = getenv("SUDO_GID");
   if (sudo_gid == NULL || *sudo_gid == '\0') {
-    return getegid();
+    return getgid();
   }
 
   return id(sudo_gid, "group");
@@ -195,7 +196,7 @@ int main(int argc, char *argv[]) {
   int ch;
   char *p;
 
-  while ((ch = getopt_long(argc, argv, "d:f:g:hu:", longopts, NULL)) != -1) {
+  while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
     switch (ch) {
     case 'd':
       dir_perm = permfixer_parse_perms(optarg, "directory");
