@@ -1,7 +1,5 @@
 # permfixer
 
-[![CircleCI](https://circleci.com/gh/t-richards/permfixer.svg?style=svg)](https://circleci.com/gh/t-richards/permfixer)
-
 Permissions fixer utility for Unix and GNU/Linux. Basically a special-purpose chown+chmod+setfacl.
 
 ## Dependencies
