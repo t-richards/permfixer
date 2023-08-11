@@ -16,13 +16,13 @@ jobs:
       image: debian:11-slim
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
       - name: Install system deps
         run: |
           apt-get update
           apt-get install -y --no-install-recommends curl ca-certificates git gcc libc6-dev make
+
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Build application
         run: |
