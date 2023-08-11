@@ -46,5 +46,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          git config --global --add safe.directory /__w/permfixer/permfixer
           gh release delete latest --cleanup-tag || true
           gh release create latest permfixer_*.deb --latest
