@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: write
 
-    comtainer:
+    container:
       image: debian:11-slim
 
     steps:
