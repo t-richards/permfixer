@@ -22,7 +22,7 @@ jobs:
       - name: Install system deps
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends curl ca-certificates git gcc make
+          apt-get install -y --no-install-recommends curl ca-certificates git gcc libc6-dev make
 
       - name: Build application
         run: |
