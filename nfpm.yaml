@@ -1,0 +1,14 @@
+name: permfixer
+arch: amd64
+platform: linux
+version: v1.0.0
+section: default
+maintainer: Tom Richards <tom@tomrichards.net>
+description: File permissions fixer.
+homepage: https://github.com/t-richards/permfixer
+license: MIT
+
+contents:
+  # Main binary
+  - src: permfixer
+    dst: /usr/bin/permfixer

@@ -1,0 +1,50 @@
+name: Package
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deb:
+    name: Build Debian package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    comtainer:
+      image: debian:11-slim
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install system deps
+      run: |
+        apt-get update
+        apt-get install -y --no-install-recommends curl ca-certificates git gcc make
+
+    - name: Build application
+      run: |
+        make
+
+    - name: Install NFPM
+      run: |
+        curl -LO https://github.com/goreleaser/nfpm/releases/download/v2.32.0/nfpm_2.32.0_amd64.deb
+        dpkg -i nfpm_2.32.0_amd64.deb
+
+    - name: Build Debian package
+      run: |
+        nfpm pkg --packager deb
+
+    - name: Install GitHub CLI
+      run: |
+        curl -LO https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_amd64.deb
+        dpkg -i gh_2.32.1_linux_amd64.deb
+
+    - name: Create release with binary assets
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release delete latest --cleanup-tag || true
+        gh release create latest permfixer_*.deb --latest

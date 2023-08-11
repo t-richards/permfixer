@@ -3,3 +3,6 @@ permfixer
 
 # Dev stuff
 .vscode
+
+# Packages
+*.deb

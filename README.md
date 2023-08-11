@@ -1,18 +1,10 @@
 # permfixer
 
-Permissions fixer utility for Unix and GNU/Linux. Basically a special-purpose chown+chmod+setfacl.
+Permissions fixer utility for Unix and GNU/Linux. Basically a special-purpose chown+chmod.
 
-## Dependencies
+## Installation (manual)
 
- - Make
- - C compiler
- - ACL development headers (Debian: `libacl1-dev`, Fedora: `libacl-devel`)
-
-## Building from source
-
-```
-$ make
-```
+Download the latest release from the [releases page](https://github.com/t-richards/permfixer/releases).
 
 ## Usage
 
