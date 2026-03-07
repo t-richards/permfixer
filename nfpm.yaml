@@ -1,7 +1,7 @@
 name: permfixer
 arch: amd64
 platform: linux
-version: v1.0.0
+version: v1.0.1
 section: default
 maintainer: Tom Richards <tom@tomrichards.net>
 description: File permissions fixer.

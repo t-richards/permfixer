@@ -13,7 +13,7 @@ jobs:
       contents: write
 
     container:
-      image: debian:11-slim
+      image: debian:12-slim
 
     steps:
       - name: Install system deps
@@ -22,7 +22,7 @@ jobs:
           apt-get install -y --no-install-recommends curl ca-certificates git gcc libc6-dev make
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Build application
         run: |
@@ -30,8 +30,9 @@ jobs:
 
       - name: Install NFPM
         run: |
-          curl -LO https://github.com/goreleaser/nfpm/releases/download/v2.32.0/nfpm_2.32.0_amd64.deb
-          dpkg -i nfpm_2.32.0_amd64.deb
+          NFPM_VERSION=$(curl -sL https://api.github.com/repos/goreleaser/nfpm/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | sed 's/v//')
+          curl -LO https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_amd64.deb
+          dpkg -i nfpm_${NFPM_VERSION}_amd64.deb
 
       - name: Build Debian package
         run: |
@@ -39,8 +40,12 @@ jobs:
 
       - name: Install GitHub CLI
         run: |
-          curl -LO https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_amd64.deb
-          dpkg -i gh_2.32.1_linux_amd64.deb
+          mkdir -p -m 755 /etc/apt/keyrings
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+          chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          apt-get update
+          apt-get install -y gh
 
       - name: Create release with binary assets
         env:
